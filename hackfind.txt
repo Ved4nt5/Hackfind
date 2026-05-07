@@ -1,0 +1,42 @@
+Here is the complete Product Requirements Document (PRD) for the HackFinder platform. This outlines exactly *what* the application must be, focusing purely on features, user experience, and logic.
+### 1. Core Product Vision & User Experience
+ * **The "Zero-Click" Rule:** The application must be fully automated. There are no manual "Sync" or "Refresh" buttons. Data must fetch and display the instant the application opens.
+ * **Performance & Speed (The Caching Engine):** The platform must never feel slow or show endless loading spinners. Once data is fetched for the first time, it must be stored locally in the browser's memory (Local Storage) with a 12-hour expiration timer. On all subsequent visits or tab switches, the application must instantly display the cached data while checking for updates silently in the background.
+ * **Premium Visual Identity:** The interface must strictly adhere to a deep dark-mode aesthetic utilizing glassmorphism (translucent, blurred backgrounds), high-contrast typography, and subtle neon gradient accents.
+ * **Bento Box Layout:** Content must not be displayed in standard vertical lists. It must utilize a modern, masonry-style "Bento Box" grid where cards naturally tile together.
+ * **Flawless Mobile Scaling:** The UI must dynamically adapt to any screen size.
+   * *Desktop:* 3-column grid.
+   * *Tablet:* 2-column grid.
+   * *Mobile:* 1-column grid. Menus and tab bars must become horizontally scrollable on phones to prevent a cluttered or squished interface.
+### 2. Role-Based Access System
+The platform operates on a dual-role system to ensure security while maintaining a seamless public experience.
+**Role A: The Public User (Default)**
+ * Has read-only access to the entire platform.
+ * Cannot see any input fields, upload buttons, or parser tools.
+ * Experiences a clean, uninterrupted feed of hackathons, contests, and posters.
+**Role B: The Admin**
+ * Access is granted via a hidden/subtle "Admin Login" button located in the application footer.
+ * Requires a passcode to unlock.
+ * Once authenticated, the Admin status is remembered locally so the user doesn't have to log in on every refresh.
+ * Unlocks specific management tools within the "College & CP" and "Club News" tabs.
+### 3. The Navigation & Content Architecture (The 5 Tabs)
+#### Tab 1: International
+ * **What it does:** Displays a live feed of exactly 8 upcoming or active global/worldwide hackathons.
+ * **Card Details:** Each bento card must show the hackathon title, organizer, location, prize pool, mode (Online/Offline/Hybrid), start/end dates, and an automatically calculated "Days Left" or "Live Today" countdown badge.
+#### Tab 2: National
+ * **What it does:** Follows the exact same layout and card structure as the International tab, but filters strictly for India-wide hackathons open to national participants.
+#### Tab 3: Maharashtra
+ * **What it does:** Follows the exact same layout and card structure, but filters strictly for state-level hackathons and tech events occurring within Maharashtra (e.g., Pune, Mumbai).
+#### Tab 4: College & CP (Competitive Programming)
+ * **What it does:** A dual-purpose hub for real-time coding competitions.
+ * **Public View Features:**
+   1. A live, scrollable feed of upcoming global CP contests (Codeforces, LeetCode, CodeChef, etc.) pulled automatically from a live aggregator API.
+   2. A secondary feed displaying "Club Published" contests that were manually added by the Admin.
+ * **Admin View Features (The Parser System):**
+   * Reveals a dedicated workspace with a text input area.
+   * **The Live Parser:** The Admin pastes raw text in a strict format (Platform, Name, Timing, Duration, Link). The system instantly reads this text and generates a live, styled visual preview of the card on the screen.
+   * **Publishing:** A "Publish" button commits the parsed card to the local database, immediately making it visible in the Public View. Admin can also delete these entries.
+#### Tab 5: Club News
+ * **What it does:** A visual showcase for college club event posters.
+ * **Public View Features:** Displays a stunning, image-heavy masonry gallery of promotional posters. Clicking a poster should ideally expand it for easier reading.
+ * **Admin View Features:** Reveals an "+ Upload Posters" button. The system must accept image files, convert them into persistent local data, and instantly add them to the masonry gallery. Admins must have the ability to delete posters to keep the gallery clean.
