@@ -82,7 +82,9 @@ function safeUrl(value) {
 }
 
 async function hashText(text) {
-  if (!globalThis.crypto?.subtle) return btoa(unescape(encodeURIComponent(text)));
+  if (!globalThis.crypto?.subtle) {
+    throw new Error("Web Crypto API is required for admin authentication.");
+  }
   const bytes = new TextEncoder().encode(text);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -97,10 +99,15 @@ async function ensureAdminPasscode() {
     alert("Passcodes do not match");
     return false;
   }
-  const hash = await hashText(first);
-  save(DB_KEYS.adminPassHash, hash);
-  alert("Admin passcode configured");
-  return true;
+  try {
+    const hash = await hashText(first);
+    save(DB_KEYS.adminPassHash, hash);
+    alert("Admin passcode configured");
+    return true;
+  } catch {
+    alert("This browser does not support secure admin authentication.");
+    return false;
+  }
 }
 
 function cardTemplate(item) {
@@ -135,7 +142,9 @@ async function loadWithCache(key, fetcher) {
   const cached = load(key);
   if (cached?.data && now - cached.timestamp < CACHE_TTL_MS) {
     cacheStatus.textContent = "Cached • Fast mode";
-    fetcher().then((fresh) => save(key, { timestamp: Date.now(), data: fresh })).catch(() => null);
+    fetcher()
+      .then((fresh) => save(key, { timestamp: Date.now(), data: fresh }))
+      .catch((error) => console.warn("Background refresh failed:", error));
     return cached.data;
   }
   const fresh = await fetcher();
@@ -241,13 +250,17 @@ adminToggle.addEventListener("click", async () => {
   const code = prompt("Enter admin passcode");
   if (!code) return;
 
-  const entered = await hashText(code);
-  const expected = load(DB_KEYS.adminPassHash, "");
-  if (entered === expected) {
-    save(DB_KEYS.admin, true);
-    applyAdminState();
-  } else {
-    alert("Incorrect passcode");
+  try {
+    const entered = await hashText(code);
+    const expected = load(DB_KEYS.adminPassHash, "");
+    if (entered === expected) {
+      save(DB_KEYS.admin, true);
+      applyAdminState();
+    } else {
+      alert("Incorrect passcode");
+    }
+  } catch {
+    alert("This browser does not support secure admin authentication.");
   }
 });
 
