@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HackFind</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar glass">
+        <div>
+          <h1>HackFind</h1>
+          <p>Automated feed for hackathons, CP contests, and club updates.</p>
+        </div>
+        <span id="cacheStatus" class="badge">Loading...</span>
+      </header>
+
+      <nav class="tabs" id="tabs" aria-label="Sections">
+        <button class="tab active" data-tab="international">International</button>
+        <button class="tab" data-tab="national">National</button>
+        <button class="tab" data-tab="maharashtra">Maharashtra</button>
+        <button class="tab" data-tab="college-cp">College & CP</button>
+        <button class="tab" data-tab="club-news">Club News</button>
+      </nav>
+
+      <main>
+        <section class="tab-panel active" id="international">
+          <div id="internationalGrid" class="bento-grid"></div>
+        </section>
+
+        <section class="tab-panel" id="national">
+          <div id="nationalGrid" class="bento-grid"></div>
+        </section>
+
+        <section class="tab-panel" id="maharashtra">
+          <div id="maharashtraGrid" class="bento-grid"></div>
+        </section>
+
+        <section class="tab-panel" id="college-cp">
+          <div class="split-grid">
+            <div class="glass section-card">
+              <h2>Live Global CP Contests</h2>
+              <div id="cpFeed" class="stack"></div>
+            </div>
+            <div class="glass section-card">
+              <h2>Club Published Contests</h2>
+              <div id="clubContestFeed" class="stack"></div>
+            </div>
+          </div>
+
+          <div id="cpAdminPanel" class="glass section-card admin-only hidden">
+            <h3>Admin Parser Workspace</h3>
+            <p>Use strict format: Platform, Name, Timing, Duration, Link</p>
+            <textarea id="parserInput" rows="8" placeholder="Platform: Codeforces
+Name: Div 3 Round
+Timing: 2026-05-11 20:05 IST
+Duration: 2h
+Link: https://..."></textarea>
+            <div class="parser-actions">
+              <button id="publishContestBtn">Publish</button>
+            </div>
+            <div id="parserPreview"></div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="club-news">
+          <div id="posterAdminPanel" class="admin-only hidden glass section-card">
+            <h3>Admin Poster Upload</h3>
+            <input id="posterUploader" type="file" accept="image/*" multiple />
+          </div>
+          <div id="posterGrid" class="masonry"></div>
+        </section>
+      </main>
+
+      <footer class="footer glass">
+        <small>HackFind • Built for GitHub Pages</small>
+        <button id="adminToggle" class="admin-trigger" aria-label="Admin login">Admin Login</button>
+      </footer>
+    </div>
+
+    <div id="imageModal" class="modal hidden" role="dialog" aria-modal="true">
+      <button id="closeModal" class="close-btn">×</button>
+      <img id="modalImage" alt="Poster preview" />
+    </div>
+
+    <script src="/script.js"></script>
+  </body>
+</html>
