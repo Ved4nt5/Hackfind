@@ -27,6 +27,9 @@ const staticHackathons = [
   { title: "HealthTech Makers", organizer: "MediFuture", location: "Worldwide", prize: "$20,000", mode: "Online", startDate: "2026-05-26", endDate: "2026-05-28", region: "international" },
   { title: "CloudX Hack Open", organizer: "SkyLabs", location: "Worldwide", prize: "$18,000", mode: "Online", startDate: "2026-06-02", endDate: "2026-06-04", region: "international" },
   { title: "Cyber Defense Jam", organizer: "SecureLabs", location: "Worldwide", prize: "$22,000", mode: "Hybrid", startDate: "2026-06-07", endDate: "2026-06-08", region: "international" },
+  { title: "GreenCompute Hack", organizer: "EcoStack", location: "Worldwide", prize: "$15,000", mode: "Online", startDate: "2026-06-10", endDate: "2026-06-12", region: "international" },
+  { title: "FinTech Future Build", organizer: "PayGrid Labs", location: "Worldwide", prize: "$28,000", mode: "Hybrid", startDate: "2026-06-14", endDate: "2026-06-16", region: "international" },
+  { title: "Quantum Dev Challenge", organizer: "QubitWorks", location: "Worldwide", prize: "$35,000", mode: "Online", startDate: "2026-06-20", endDate: "2026-06-22", region: "international" },
   { title: "India Innovate Hack", organizer: "Tech India Forum", location: "India", prize: "₹8,00,000", mode: "Hybrid", startDate: "2026-05-13", endDate: "2026-05-15", region: "national" },
   { title: "Code Bharat Buildathon", organizer: "Dev Bharat", location: "India", prize: "₹5,00,000", mode: "Online", startDate: "2026-05-20", endDate: "2026-05-21", region: "national" },
   { title: "Smart India Hack Push", organizer: "Campus Network", location: "India", prize: "₹12,00,000", mode: "Offline", startDate: "2026-05-29", endDate: "2026-05-31", region: "national" },
@@ -52,23 +55,44 @@ function countdownLabel(endDate) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const target = toDate(endDate);
+  if (Number.isNaN(target.getTime())) return "Upcoming";
   const days = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
   if (days < 0) return "Ended";
   if (days === 0) return "Live Today";
   return `${days} day${days > 1 ? "s" : ""} left`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function safeUrl(value) {
+  if (!value) return "";
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.href : "";
+  } catch {
+    return "";
+  }
+}
+
 function cardTemplate(item) {
+  const link = safeUrl(item.url || item.link);
   return `<article class="card glass">
-    <h3>${item.title || item.name}</h3>
-    <p class="meta">Organizer/Platform: ${item.organizer || item.site || item.platform || "-"}</p>
-    <p class="meta">Location: ${item.location || "Global"}</p>
-    <p class="meta">Prize: ${item.prize || "N/A"}</p>
-    <p class="meta">Mode: ${item.mode || "Online"}</p>
-    <p class="meta">Start: ${item.startDate || item.start_time || "-"}</p>
-    <p class="meta">End: ${item.endDate || item.end_time || "-"}</p>
+    <h3>${escapeHtml(item.title || item.name)}</h3>
+    <p class="meta">Organizer/Platform: ${escapeHtml(item.organizer || item.site || item.platform || "-")}</p>
+    <p class="meta">Location: ${escapeHtml(item.location || "Global")}</p>
+    <p class="meta">Prize: ${escapeHtml(item.prize || "N/A")}</p>
+    <p class="meta">Mode: ${escapeHtml(item.mode || "Online")}</p>
+    <p class="meta">Start: ${escapeHtml(item.startDate || item.start_time || "-")}</p>
+    <p class="meta">End: ${escapeHtml(item.endDate || item.end_time || "-")}</p>
     <span class="countdown">${countdownLabel(item.endDate || item.end_time?.slice(0,10) || new Date().toISOString().slice(0,10))}</span>
-    ${item.url || item.link ? `<p><a href="${item.url || item.link}" target="_blank" rel="noopener">Open Link</a></p>` : ""}
+    ${link ? `<p><a href="${link}" target="_blank" rel="noopener">Open Link</a></p>` : ""}
   </article>`;
 }
 
@@ -247,7 +271,7 @@ function renderPosters() {
   }
   root.innerHTML = posters
     .map((p, idx) => `<div class="poster glass">
-        <img src="${p.src}" alt="${p.name || "Poster"}" data-img="${p.src}" />
+        <img src="${p.src}" alt="${escapeHtml(p.name || "Poster")}" data-img="${p.src}" />
         ${isAdmin() ? `<button data-del-poster="${idx}">Delete</button>` : ""}
       </div>`)
     .join("");
