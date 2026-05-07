@@ -1,4 +1,3 @@
-const ADMIN_PASSCODE = "hackfind-admin";
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 
 const cacheStatus = document.getElementById("cacheStatus");
@@ -17,6 +16,7 @@ const closeModal = document.getElementById("closeModal");
 
 const DB_KEYS = {
   admin: "hackfind_admin",
+  adminPassHash: "hackfind_admin_pass_hash",
   localContests: "hackfind_local_contests",
   posters: "hackfind_posters"
 };
@@ -79,6 +79,28 @@ function safeUrl(value) {
   } catch {
     return "";
   }
+}
+
+async function hashText(text) {
+  if (!globalThis.crypto?.subtle) return btoa(unescape(encodeURIComponent(text)));
+  const bytes = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function ensureAdminPasscode() {
+  if (load(DB_KEYS.adminPassHash, "")) return true;
+  const first = prompt("Set a new admin passcode");
+  if (!first) return false;
+  const second = prompt("Confirm admin passcode");
+  if (first !== second) {
+    alert("Passcodes do not match");
+    return false;
+  }
+  const hash = await hashText(first);
+  save(DB_KEYS.adminPassHash, hash);
+  alert("Admin passcode configured");
+  return true;
 }
 
 function cardTemplate(item) {
@@ -207,17 +229,24 @@ function applyAdminState() {
   renderPosters();
 }
 
-adminToggle.addEventListener("click", () => {
+adminToggle.addEventListener("click", async () => {
   if (isAdmin()) {
     save(DB_KEYS.admin, false);
     applyAdminState();
     return;
   }
+  const configured = await ensureAdminPasscode();
+  if (!configured) return;
+
   const code = prompt("Enter admin passcode");
-  if (code === ADMIN_PASSCODE) {
+  if (!code) return;
+
+  const entered = await hashText(code);
+  const expected = load(DB_KEYS.adminPassHash, "");
+  if (entered === expected) {
     save(DB_KEYS.admin, true);
     applyAdminState();
-  } else if (code) {
+  } else {
     alert("Incorrect passcode");
   }
 });
