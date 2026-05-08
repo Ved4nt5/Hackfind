@@ -264,7 +264,8 @@ function activateTab(tab) {
 }
 
 tabs.forEach((tab, idx) => {
-  tab.id = `tab-${tab.dataset.tab}`;
+  const safeTabKey = (tab.dataset.tab || `tab-${idx}`).replace(/[^a-zA-Z0-9_-]/g, "-");
+  tab.id = `tab-${safeTabKey}`;
   tab.setAttribute("tabindex", idx === 0 ? "0" : "-1");
   tab.setAttribute("aria-controls", tab.dataset.tab);
 
@@ -614,10 +615,9 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") modal.classList.add("hidden");
 });
 
-[globalSearch, modeFilter, activeOnly].forEach((control) => {
-  control?.addEventListener("input", refreshFeedViews);
-  control?.addEventListener("change", refreshFeedViews);
-});
+globalSearch?.addEventListener("input", refreshFeedViews);
+modeFilter?.addEventListener("change", refreshFeedViews);
+activeOnly?.addEventListener("change", refreshFeedViews);
 
 (async function init() {
   try {
