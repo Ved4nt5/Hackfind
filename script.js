@@ -33,6 +33,7 @@ const appState = {
   hackathons: [],
   cpContests: []
 };
+const backgroundRefreshInFlight = new Set();
 
 const staticHackathons = [
   { title: "Global AI Sprint", organizer: "Open Tech League", location: "Worldwide", prize: "$25,000", mode: "Online", startDate: "2026-05-12", endDate: "2026-05-14", region: "international" },
@@ -122,8 +123,9 @@ function countdownLabel(endDate) {
   today.setHours(0, 0, 0, 0);
   const target = toDate(endDate);
   if (Number.isNaN(target.getTime())) return "Upcoming";
-  target.setHours(0, 0, 0, 0);
-  const days = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+  const targetDay = new Date(target);
+  targetDay.setHours(0, 0, 0, 0);
+  const days = Math.ceil((targetDay - today) / (1000 * 60 * 60 * 24));
   if (days < 0) return "Ended";
   if (days === 0) return "Live Today";
   return `${days} day${days > 1 ? "s" : ""} left`;
@@ -218,16 +220,22 @@ async function loadWithCache(key, fetcher, onBackgroundRefresh) {
   if (cached?.data && now - cached.timestamp < CACHE_TTL_MS) {
     setCacheStatus("Cached • Fast mode");
     setLastSync(cached.timestamp);
-    fetcher()
-      .then((fresh) => {
-        save(key, { timestamp: Date.now(), data: fresh });
-        onBackgroundRefresh?.(fresh);
-        setCacheStatus("Live sync complete");
-        setLastSync(Date.now());
-      })
-      .catch((error) => {
-        console.warn("Background refresh failed:", error);
-      });
+    if (!backgroundRefreshInFlight.has(key)) {
+      backgroundRefreshInFlight.add(key);
+      fetcher()
+        .then((fresh) => {
+          save(key, { timestamp: Date.now(), data: fresh });
+          onBackgroundRefresh?.(fresh);
+          setCacheStatus("Live sync complete");
+          setLastSync(Date.now());
+        })
+        .catch((error) => {
+          console.warn("Background refresh failed:", error);
+        })
+        .finally(() => {
+          backgroundRefreshInFlight.delete(key);
+        });
+    }
     return cached.data;
   }
 
@@ -318,18 +326,42 @@ function parseContestText(text) {
   const obj = {};
 
   for (const line of text.split("\n")) {
-    const [fieldName, ...rest] = line.split(":");
-    if (!fieldName || rest.length === 0) continue;
-    obj[fieldName.trim()] = rest.join(":").trim();
+    const [rawFieldName, ...rest] = line.split(":");
+    if (!rawFieldName || rest.length === 0) continue;
+    obj[rawFieldName.trim()] = rest.join(":").trim();
   }
 
   if (!required.every((key) => obj[key])) return null;
+
+  function durationToMs(duration) {
+    if (!duration) return 0;
+    const text = String(duration).toLowerCase();
+    const parts = [...text.matchAll(/(\d+)\s*(day|days|d|hour|hours|hr|hrs|h|minute|minutes|min|mins|m)\b/g)];
+    if (!parts.length) return 0;
+
+    return parts.reduce((total, match) => {
+      const value = Number(match[1]);
+      const unit = match[2];
+      if (Number.isNaN(value)) return total;
+      if (["day", "days", "d"].includes(unit)) return total + value * 24 * 60 * 60 * 1000;
+      if (["hour", "hours", "hr", "hrs", "h"].includes(unit)) return total + value * 60 * 60 * 1000;
+      return total + value * 60 * 1000;
+    }, 0);
+  }
+
+  function deriveEndTime(start, duration) {
+    const startDate = toDate(start);
+    if (Number.isNaN(startDate.getTime())) return start;
+    const durationMs = durationToMs(duration);
+    if (!durationMs) return start;
+    return new Date(startDate.getTime() + durationMs).toISOString();
+  }
 
   return {
     platform: obj.Platform,
     name: obj.Name,
     start_time: obj.Timing,
-    end_time: obj.Timing,
+    end_time: deriveEndTime(obj.Timing, obj.Duration),
     duration: obj.Duration,
     link: obj.Link,
     organizer: obj.Platform,
