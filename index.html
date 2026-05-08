@@ -4,40 +4,79 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HackFind</title>
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar glass">
-        <div>
+        <div class="brand">
           <h1>HackFind</h1>
           <p>Automated feed for hackathons, CP contests, and club updates.</p>
         </div>
-        <span id="cacheStatus" class="badge">Loading...</span>
+        <div class="status-stack">
+          <span id="cacheStatus" class="badge" aria-live="polite">Loading...</span>
+          <small id="lastSync" class="sync-text">Sync pending</small>
+        </div>
       </header>
 
-      <nav class="tabs" id="tabs" aria-label="Sections">
-        <button class="tab active" data-tab="international">International</button>
-        <button class="tab" data-tab="national">National</button>
-        <button class="tab" data-tab="maharashtra">Maharashtra</button>
-        <button class="tab" data-tab="college-cp">College & CP</button>
-        <button class="tab" data-tab="club-news">Club News</button>
+      <section class="hero glass">
+        <div>
+          <p class="eyebrow">Discover opportunities faster</p>
+          <h2>A modern, zero-click feed for hackathons, CP contests, and club news.</h2>
+          <p class="hero-text">Search, filter, and explore events instantly with cached fast mode and responsive layouts.</p>
+        </div>
+        <div class="hero-stats">
+          <article class="stat glass">
+            <span id="hackathonCount">0</span>
+            <small>Hackathons</small>
+          </article>
+          <article class="stat glass">
+            <span id="cpCount">0</span>
+            <small>CP Contests</small>
+          </article>
+          <article class="stat glass">
+            <span id="clubCount">0</span>
+            <small>Club Entries</small>
+          </article>
+        </div>
+      </section>
+
+      <section class="filters glass" aria-label="Global filters">
+        <input id="globalSearch" type="search" placeholder="Search by title, organizer, location, or platform..." />
+        <select id="modeFilter" aria-label="Filter by mode">
+          <option value="all">All Modes</option>
+          <option value="online">Online</option>
+          <option value="offline">Offline</option>
+          <option value="hybrid">Hybrid</option>
+        </select>
+        <label class="toggle">
+          <input id="activeOnly" type="checkbox" />
+          <span>Only active/upcoming</span>
+        </label>
+      </section>
+
+      <nav class="tabs" id="tabs" aria-label="Sections" role="tablist">
+        <button class="tab active" data-tab="international" role="tab" aria-selected="true">International</button>
+        <button class="tab" data-tab="national" role="tab" aria-selected="false">National</button>
+        <button class="tab" data-tab="maharashtra" role="tab" aria-selected="false">Maharashtra</button>
+        <button class="tab" data-tab="college-cp" role="tab" aria-selected="false">College & CP</button>
+        <button class="tab" data-tab="club-news" role="tab" aria-selected="false">Club News</button>
       </nav>
 
       <main>
-        <section class="tab-panel active" id="international">
+        <section class="tab-panel active" id="international" role="tabpanel">
           <div id="internationalGrid" class="bento-grid"></div>
         </section>
 
-        <section class="tab-panel" id="national">
+        <section class="tab-panel" id="national" role="tabpanel">
           <div id="nationalGrid" class="bento-grid"></div>
         </section>
 
-        <section class="tab-panel" id="maharashtra">
+        <section class="tab-panel" id="maharashtra" role="tabpanel">
           <div id="maharashtraGrid" class="bento-grid"></div>
         </section>
 
-        <section class="tab-panel" id="college-cp">
+        <section class="tab-panel" id="college-cp" role="tabpanel">
           <div class="split-grid">
             <div class="glass section-card">
               <h2>Live Global CP Contests</h2>
@@ -58,13 +97,13 @@ Timing: 2026-05-11 20:05 IST
 Duration: 2h
 Link: https://..."></textarea>
             <div class="parser-actions">
-              <button id="publishContestBtn">Publish</button>
+              <button id="publishContestBtn" class="btn-primary">Publish</button>
             </div>
             <div id="parserPreview"></div>
           </div>
         </section>
 
-        <section class="tab-panel" id="club-news">
+        <section class="tab-panel" id="club-news" role="tabpanel">
           <div id="posterAdminPanel" class="admin-only hidden glass section-card">
             <h3>Admin Poster Upload</h3>
             <input id="posterUploader" type="file" accept="image/*" multiple />
@@ -80,10 +119,10 @@ Link: https://..."></textarea>
     </div>
 
     <div id="imageModal" class="modal hidden" role="dialog" aria-modal="true">
-      <button id="closeModal" class="close-btn">×</button>
+      <button id="closeModal" class="close-btn" type="button" aria-label="Close modal">×</button>
       <img id="modalImage" alt="Poster preview" />
     </div>
 
-    <script src="/script.js"></script>
+    <script src="script.js"></script>
   </body>
 </html>
