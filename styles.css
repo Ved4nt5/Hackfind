@@ -199,6 +199,11 @@ a {
   gap: 0.65rem;
 }
 
+.stack-entry {
+  display: grid;
+  gap: 0.45rem;
+}
+
 .card {
   padding: 0.95rem;
   border-radius: 14px;

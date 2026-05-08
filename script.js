@@ -27,6 +27,7 @@ const DB_KEYS = {
   localContests: "hackfind_local_contests",
   posters: "hackfind_posters"
 };
+const DEFAULT_MODE = "Online";
 
 const appState = {
   hackathons: [],
@@ -165,7 +166,7 @@ function applyCommonFilters(items) {
 
   return items.filter((item) => {
     if (!matchesSearch(item, query)) return false;
-    if (mode !== "all" && String(item.mode || "online").toLowerCase() !== mode) return false;
+    if (mode !== "all" && String(item.mode || DEFAULT_MODE).toLowerCase() !== mode) return false;
     if (onlyActive && !isUpcomingOrLive(item)) return false;
     return true;
   });
@@ -177,10 +178,11 @@ function cardTemplate(item) {
   const organizer = escapeHtml(item.organizer || item.site || item.platform || "-");
   const location = escapeHtml(item.location || "Global");
   const prize = escapeHtml(item.prize || "N/A");
-  const mode = escapeHtml(item.mode || "Online");
+  const mode = escapeHtml(item.mode || DEFAULT_MODE);
   const startDate = escapeHtml(formatDate(item.startDate || item.start_time || "-"));
-  const endDateRaw = item.endDate || item.end_time || item.startDate || item.start_time || "";
+  const endDateRaw = item.endDate || item.end_time || "";
   const endDate = escapeHtml(formatDate(endDateRaw || "-"));
+  const countdownBase = endDateRaw || item.startDate || item.start_time || "";
 
   return `<article class="card glass">
     <h3>${title}</h3>
@@ -190,8 +192,8 @@ function cardTemplate(item) {
     <p class="meta">Mode: ${mode}</p>
     <p class="meta">Start: ${startDate}</p>
     <p class="meta">End: ${endDate}</p>
-    <span class="countdown">${countdownLabel(endDateRaw)}</span>
-    ${link ? `<div class="card-actions"><a href="${link}" target="_blank" rel="noopener">Open Link</a></div>` : ""}
+    <span class="countdown">${countdownLabel(countdownBase)}</span>
+    ${link ? `<div class="card-actions"><a href="${link}" target="_blank" rel="noopener noreferrer">Open Link</a></div>` : ""}
   </article>`;
 }
 
@@ -316,9 +318,9 @@ function parseContestText(text) {
   const obj = {};
 
   for (const line of text.split("\n")) {
-    const [key, ...rest] = line.split(":");
-    if (!key || rest.length === 0) continue;
-    obj[key.trim()] = rest.join(":").trim();
+    const [fieldName, ...rest] = line.split(":");
+    if (!fieldName || rest.length === 0) continue;
+    obj[fieldName.trim()] = rest.join(":").trim();
   }
 
   if (!required.every((key) => obj[key])) return null;
@@ -333,7 +335,7 @@ function parseContestText(text) {
     organizer: obj.Platform,
     location: "Global",
     prize: "N/A",
-    mode: "Online"
+    mode: DEFAULT_MODE
   };
 }
 
@@ -350,7 +352,12 @@ function renderClubContests() {
   }
 
   root.innerHTML = filtered
-    .map(({ entry, idx }) => `${cardTemplate(entry)}${isAdmin() ? `<button class="btn-subtle" data-del-contest="${idx}">Delete</button>` : ""}`)
+    .map(
+      ({ entry, idx }) => `<div class="stack-entry">
+        ${cardTemplate(entry)}
+        ${isAdmin() ? `<button class="btn-subtle" data-del-contest="${idx}">Delete</button>` : ""}
+      </div>`
+    )
     .join("");
 
   if (isAdmin()) {
@@ -379,11 +386,11 @@ async function fetchCPContests() {
         title: d.name,
         organizer: d.site,
         location: "Global",
-        mode: "Online",
+        mode: DEFAULT_MODE,
         prize: "N/A"
       }))
       .sort((a, b) => toDate(a.start_time) - toDate(b.start_time))
-      .slice(0, 12);
+      .slice(0, 10);
   } catch {
     return [
       {
@@ -393,7 +400,7 @@ async function fetchCPContests() {
         end_time: "2026-05-10",
         url: "https://codeforces.com",
         location: "Global",
-        mode: "Online",
+        mode: DEFAULT_MODE,
         prize: "N/A"
       }
     ];
