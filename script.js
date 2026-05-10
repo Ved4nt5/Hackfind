@@ -177,7 +177,13 @@ function toDate(value) {
 
 function makeId(prefix) {
   if (globalThis.crypto?.randomUUID) return `${prefix}_${crypto.randomUUID()}`;
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  if (globalThis.crypto?.getRandomValues) {
+    const bytes = new Uint8Array(8);
+    crypto.getRandomValues(bytes);
+    const token = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+    return `${prefix}_${Date.now()}_${token}`;
+  }
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 }
 
 function formatDate(value) {
@@ -615,7 +621,7 @@ function parseContestText(text) {
     return { error: "Invalid format. Required: Platform, Name, Timing, Duration, Link" };
   }
   if (!safeUrl(obj.Link)) {
-    return { error: "Link must be a valid http/https URL." };
+    return { error: "Link must be a valid HTTP/HTTPS URL." };
   }
 
   function durationToMs(duration) {
@@ -776,7 +782,7 @@ async function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error(`Unable to read uploaded image: ${reader.error?.message || "Unknown error"}`));
+    reader.onerror = () => reject(new Error("Failed to read the uploaded image file."));
     reader.readAsDataURL(file);
   });
 }
@@ -792,6 +798,12 @@ async function submitHackathon(event) {
   if (!requireAdmin()) return;
 
   try {
+    const normalizedHackathonLink = String(hackathonLink.value || "").trim();
+    const validatedHackathonLink = normalizedHackathonLink ? safeUrl(normalizedHackathonLink) : "";
+    if (normalizedHackathonLink && !validatedHackathonLink) {
+      throw new Error("Hackathon link must be a valid HTTP/HTTPS URL.");
+    }
+
     const payload = {
       id: hackathonId.value || makeId("hack"),
       title: normalizeRequiredText(hackathonTitle.value, "Title"),
@@ -802,7 +814,7 @@ async function submitHackathon(event) {
       region: normalizeRequiredText(hackathonRegion.value, "Region", 4, 20),
       startDate: normalizeDate(hackathonStart.value, "Start date"),
       endDate: normalizeDate(hackathonEnd.value, "End date"),
-      link: safeUrl(hackathonLink.value),
+      link: validatedHackathonLink,
       featured: Boolean(hackathonFeatured.checked)
     };
 
@@ -834,6 +846,10 @@ async function submitPoster(event) {
     const nextSrc = file ? await fileToDataUrl(file) : existing?.src;
     if (!nextSrc) throw new Error("Poster image is required.");
 
+    const normalizedPosterLink = normalizeRequiredText(posterLink.value, "Event link", 1, 300);
+    const validatedPosterLink = safeUrl(normalizedPosterLink);
+    if (!validatedPosterLink) throw new Error("Event link must be a valid HTTP/HTTPS URL.");
+
     const payload = {
       id: editingId || makeId("poster"),
       title: normalizeRequiredText(posterTitle.value, "Poster title"),
@@ -842,7 +858,7 @@ async function submitPoster(event) {
       deadline: normalizeDate(posterDeadline.value, "Deadline"),
       startDate: normalizeDate(posterStart.value, "Start date"),
       endDate: normalizeDate(posterEnd.value, "End date"),
-      link: safeUrl(normalizeRequiredText(posterLink.value, "Event link", 10, 300)),
+      link: validatedPosterLink,
       featured: Boolean(posterFeatured.checked),
       src: nextSrc,
       ts: Date.now()
@@ -871,11 +887,17 @@ async function submitNews(event) {
   if (!requireAdmin()) return;
 
   try {
+    const normalizedNewsLink = String(newsLink.value || "").trim();
+    const validatedNewsLink = normalizedNewsLink ? safeUrl(normalizedNewsLink) : "";
+    if (normalizedNewsLink && !validatedNewsLink) {
+      throw new Error("News link must be a valid HTTP/HTTPS URL.");
+    }
+
     const payload = {
       id: newsId.value || makeId("news"),
       title: normalizeRequiredText(newsTitle.value, "News title"),
       description: normalizeRequiredText(newsDescription.value, "News description", 8, 320),
-      link: safeUrl(newsLink.value),
+      link: validatedNewsLink,
       date: normalizeDate(newsDate.value, "News date"),
       featured: Boolean(newsFeatured.checked)
     };
