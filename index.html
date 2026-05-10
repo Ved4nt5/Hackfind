@@ -22,8 +22,8 @@
       <section class="hero glass">
         <div>
           <p class="eyebrow">Discover opportunities faster</p>
-          <h2>A modern, zero-click feed for hackathons, CP contests, and club news.</h2>
-          <p class="hero-text">Search, filter, and explore events instantly with cached fast mode and responsive layouts.</p>
+          <h2>A modern, zero-click feed for hackathons, contests, news, and posters.</h2>
+          <p class="hero-text">Dynamic content updates, featured highlights, and secure admin workflows in one premium interface.</p>
         </div>
         <div class="hero-stats">
           <article class="stat glass">
@@ -42,7 +42,7 @@
       </section>
 
       <section class="filters glass" aria-label="Global filters">
-        <input id="globalSearch" type="search" placeholder="Search by title, organizer, location, or platform..." />
+        <input id="globalSearch" type="search" placeholder="Search by title, organizer, location, category, or platform..." />
         <select id="modeFilter" aria-label="Filter by mode">
           <option value="all">All Modes</option>
           <option value="online">Online</option>
@@ -55,12 +55,29 @@
         </label>
       </section>
 
+      <section class="live-grid">
+        <article class="glass section-card">
+          <div class="section-head">
+            <h2>Featured Now</h2>
+            <small>Curated live highlights</small>
+          </div>
+          <div id="featuredGrid" class="featured-grid"></div>
+        </article>
+        <article class="glass section-card">
+          <div class="section-head">
+            <h2>Latest News</h2>
+            <small>Club & hackathon updates</small>
+          </div>
+          <div id="newsFeed" class="stack"></div>
+        </article>
+      </section>
+
       <nav class="tabs" id="tabs" aria-label="Sections" role="tablist">
         <button class="tab active" data-tab="international" role="tab" aria-selected="true">International</button>
         <button class="tab" data-tab="national" role="tab" aria-selected="false">National</button>
         <button class="tab" data-tab="maharashtra" role="tab" aria-selected="false">Maharashtra</button>
         <button class="tab" data-tab="college-cp" role="tab" aria-selected="false">College & CP</button>
-        <button class="tab" data-tab="club-news" role="tab" aria-selected="false">Club News</button>
+        <button class="tab" data-tab="club-news" role="tab" aria-selected="false">Posters</button>
       </nav>
 
       <main>
@@ -104,11 +121,7 @@ Link: https://..."></textarea>
         </section>
 
         <section class="tab-panel" id="club-news" role="tabpanel">
-          <div id="posterAdminPanel" class="admin-only hidden glass section-card">
-            <h3>Admin Poster Upload</h3>
-            <input id="posterUploader" type="file" accept="image/*" multiple />
-          </div>
-          <div id="posterGrid" class="masonry"></div>
+          <div id="posterGrid" class="poster-grid"></div>
         </section>
       </main>
 
@@ -116,6 +129,97 @@ Link: https://..."></textarea>
         <small>HackFind • Built for GitHub Pages</small>
         <button id="adminToggle" class="admin-trigger" aria-label="Admin login">Admin Login</button>
       </footer>
+    </div>
+
+    <div id="adminModal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-card glass">
+        <button id="closeAdminModal" class="close-btn" type="button" aria-label="Close admin panel">×</button>
+
+        <section id="adminLoginView">
+          <h2>Admin Access</h2>
+          <p class="meta">Enter the shared admin password to manage live content.</p>
+          <form id="adminLoginForm" class="stack compact-stack" novalidate>
+            <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Admin password" required />
+            <button class="btn-primary" type="submit">Access Dashboard</button>
+          </form>
+          <p id="adminError" class="error-text hidden" aria-live="polite"></p>
+        </section>
+
+        <section id="adminDashboardView" class="hidden">
+          <div class="admin-header">
+            <h2>Admin Dashboard</h2>
+            <button id="adminLogoutBtn" class="btn-subtle" type="button">Logout</button>
+          </div>
+
+          <div class="admin-grid">
+            <article class="section-card admin-card">
+              <h3>Hackathons</h3>
+              <form id="hackathonForm" class="stack compact-stack" novalidate>
+                <input type="hidden" id="hackathonId" />
+                <input id="hackathonTitle" type="text" placeholder="Title" required />
+                <input id="hackathonOrganizer" type="text" placeholder="Organizer" required />
+                <input id="hackathonLocation" type="text" placeholder="Location" required />
+                <input id="hackathonPrize" type="text" placeholder="Prize" required />
+                <select id="hackathonMode" required>
+                  <option value="Online">Online</option>
+                  <option value="Offline">Offline</option>
+                  <option value="Hybrid">Hybrid</option>
+                </select>
+                <select id="hackathonRegion" required>
+                  <option value="international">International</option>
+                  <option value="national">National</option>
+                  <option value="maharashtra">Maharashtra</option>
+                </select>
+                <input id="hackathonStart" type="date" required />
+                <input id="hackathonEnd" type="date" required />
+                <input id="hackathonLink" type="url" placeholder="Event link (https://...)" />
+                <label class="toggle"><input id="hackathonFeatured" type="checkbox" /><span>Featured</span></label>
+                <button class="btn-primary" type="submit">Save Hackathon</button>
+              </form>
+              <div id="hackathonAdminList" class="stack admin-list"></div>
+            </article>
+
+            <article class="section-card admin-card">
+              <h3>Posters</h3>
+              <form id="posterForm" class="stack compact-stack" novalidate>
+                <input type="hidden" id="posterId" />
+                <input id="posterTitle" type="text" placeholder="Poster title" required />
+                <textarea id="posterDescription" rows="3" placeholder="Short description" required></textarea>
+                <input id="posterCategory" type="text" placeholder="Category" required />
+                <input id="posterDeadline" type="date" required />
+                <input id="posterStart" type="date" required />
+                <input id="posterEnd" type="date" required />
+                <input id="posterLink" type="url" placeholder="CTA link (https://...)" required />
+                <label class="toggle"><input id="posterFeatured" type="checkbox" /><span>Featured</span></label>
+                <input id="posterUploader" type="file" accept="image/*" />
+                <small class="meta">Upload image (JPG/PNG/WEBP/GIF, under 1.5MB) for new poster or to replace selected one.</small>
+                <button class="btn-primary" type="submit">Save Poster</button>
+              </form>
+              <div id="posterAdminList" class="stack admin-list"></div>
+            </article>
+
+            <article class="section-card admin-card">
+              <h3>News</h3>
+              <form id="newsForm" class="stack compact-stack" novalidate>
+                <input type="hidden" id="newsId" />
+                <input id="newsTitle" type="text" placeholder="News title" required />
+                <textarea id="newsDescription" rows="3" placeholder="Short update" required></textarea>
+                <input id="newsLink" type="url" placeholder="Reference link (optional)" />
+                <input id="newsDate" type="date" required />
+                <label class="toggle"><input id="newsFeatured" type="checkbox" /><span>Featured</span></label>
+                <button class="btn-primary" type="submit">Save News</button>
+              </form>
+              <div id="newsAdminList" class="stack admin-list"></div>
+            </article>
+
+            <article class="section-card admin-card">
+              <h3>Featured Manager</h3>
+              <p class="meta">Toggle featured priority across content types.</p>
+              <div id="featuredAdminList" class="stack admin-list"></div>
+            </article>
+          </div>
+        </section>
+      </div>
     </div>
 
     <div id="imageModal" class="modal hidden" role="dialog" aria-modal="true">
