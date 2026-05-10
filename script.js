@@ -1,7 +1,8 @@
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const ADMIN_PASSWORD = "mitaoe_2026";
-const MAX_IMAGE_SIZE_MB = 5;
+const MAX_IMAGE_SIZE_MB = 1.5;
 const DEFAULT_MODE = "Online";
+const ALLOWED_IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif"]);
 
 const DB_KEYS = {
   admin: "hackfind_admin",
@@ -790,7 +791,26 @@ async function fileToDataUrl(file) {
 function validateImageFile(file) {
   if (!file) return;
   if (!file.type.startsWith("image/")) throw new Error("Only image uploads are allowed.");
+  const extension = String(file.name || "")
+    .split(".")
+    .pop()
+    .toLowerCase();
+  if (!ALLOWED_IMAGE_EXTENSIONS.has(extension)) {
+    throw new Error("Allowed image formats: JPG, PNG, WEBP, GIF.");
+  }
   if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) throw new Error(`Image must be under ${MAX_IMAGE_SIZE_MB}MB.`);
+}
+
+async function verifyImageDataUrl(dataUrl) {
+  await new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      if (!img.naturalWidth || !img.naturalHeight) reject(new Error("Uploaded image appears to be corrupted."));
+      else resolve();
+    };
+    img.onerror = () => reject(new Error("Uploaded image is invalid or corrupted."));
+    img.src = dataUrl;
+  });
 }
 
 async function submitHackathon(event) {
@@ -844,6 +864,7 @@ async function submitPoster(event) {
     const editingId = posterId.value;
     const existing = readPosters().find((item) => item.id === editingId);
     const nextSrc = file ? await fileToDataUrl(file) : existing?.src;
+    if (file && nextSrc) await verifyImageDataUrl(nextSrc);
     if (!nextSrc) throw new Error("Poster image is required.");
 
     const normalizedPosterLink = normalizeRequiredText(posterLink.value, "Event link", 1, 300);
