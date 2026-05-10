@@ -175,6 +175,11 @@ function toDate(value) {
   return new Date(`${candidate.slice(0, 10)}T00:00:00`);
 }
 
+function makeId(prefix) {
+  if (globalThis.crypto?.randomUUID) return `${prefix}_${crypto.randomUUID()}`;
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
 function formatDate(value) {
   if (!value) return "-";
   const date = toDate(value);
@@ -524,7 +529,9 @@ function posterSort(a, b) {
 function renderPosters() {
   const root = document.getElementById("posterGrid");
   const posters = readPosters().map(normalizePoster).filter((poster) => !isPosterExpired(poster));
-  const filtered = applyCommonFilters(posters).filter((poster) => (activeOnly?.checked ? isPosterActive(poster) : true)).sort(posterSort);
+  const searched = applyCommonFilters(posters);
+  const activityFiltered = searched.filter((poster) => (activeOnly?.checked ? isPosterActive(poster) : true));
+  const filtered = activityFiltered.sort(posterSort);
 
   if (!filtered.length) {
     root.innerHTML = emptyState("No active posters right now.");
@@ -604,8 +611,12 @@ function parseContestText(text) {
     obj[rawFieldName.trim()] = rest.join(":").trim();
   }
 
-  if (!required.every((key) => obj[key])) return null;
-  if (!safeUrl(obj.Link)) return null;
+  if (!required.every((key) => obj[key])) {
+    return { error: "Invalid format. Required: Platform, Name, Timing, Duration, Link" };
+  }
+  if (!safeUrl(obj.Link)) {
+    return { error: "Link must be a valid http/https URL." };
+  }
 
   function durationToMs(duration) {
     const textValue = String(duration).toLowerCase();
@@ -631,17 +642,19 @@ function parseContestText(text) {
   }
 
   return {
-    id: `cp_${crypto.randomUUID ? crypto.randomUUID() : Date.now()}`,
-    platform: obj.Platform,
-    name: obj.Name,
-    start_time: obj.Timing,
-    end_time: deriveEndTime(obj.Timing, obj.Duration),
-    duration: obj.Duration,
-    link: obj.Link,
-    organizer: obj.Platform,
-    location: "Global",
-    prize: "N/A",
-    mode: DEFAULT_MODE
+    data: {
+      id: makeId("cp"),
+      platform: obj.Platform,
+      name: obj.Name,
+      start_time: obj.Timing,
+      end_time: deriveEndTime(obj.Timing, obj.Duration),
+      duration: obj.Duration,
+      link: obj.Link,
+      organizer: obj.Platform,
+      location: "Global",
+      prize: "N/A",
+      mode: DEFAULT_MODE
+    }
   };
 }
 
@@ -763,7 +776,7 @@ async function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error("Unable to read uploaded image."));
+    reader.onerror = () => reject(new Error(`Unable to read uploaded image: ${reader.error?.message || "Unknown error"}`));
     reader.readAsDataURL(file);
   });
 }
@@ -780,7 +793,7 @@ async function submitHackathon(event) {
 
   try {
     const payload = {
-      id: hackathonId.value || `hack_${crypto.randomUUID ? crypto.randomUUID() : Date.now()}`,
+      id: hackathonId.value || makeId("hack"),
       title: normalizeRequiredText(hackathonTitle.value, "Title"),
       organizer: normalizeRequiredText(hackathonOrganizer.value, "Organizer"),
       location: normalizeRequiredText(hackathonLocation.value, "Location"),
@@ -822,7 +835,7 @@ async function submitPoster(event) {
     if (!nextSrc) throw new Error("Poster image is required.");
 
     const payload = {
-      id: editingId || `poster_${crypto.randomUUID ? crypto.randomUUID() : Date.now()}`,
+      id: editingId || makeId("poster"),
       title: normalizeRequiredText(posterTitle.value, "Poster title"),
       description: normalizeRequiredText(posterDescription.value, "Description", 8, 320),
       category: normalizeRequiredText(posterCategory.value, "Category", 2, 40),
@@ -859,7 +872,7 @@ async function submitNews(event) {
 
   try {
     const payload = {
-      id: newsId.value || `news_${crypto.randomUUID ? crypto.randomUUID() : Date.now()}`,
+      id: newsId.value || makeId("news"),
       title: normalizeRequiredText(newsTitle.value, "News title"),
       description: normalizeRequiredText(newsDescription.value, "News description", 8, 320),
       link: safeUrl(newsLink.value),
@@ -1050,21 +1063,21 @@ function wireAdminListActions() {
 
 if (parserInput) {
   parserInput.addEventListener("input", () => {
-    const parsed = parseContestText(parserInput.value);
-    parserPreview.innerHTML = parsed ? cardTemplate(parsed) : `<p class="meta">Preview unavailable. Keep strict format.</p>`;
+    const result = parseContestText(parserInput.value);
+    parserPreview.innerHTML = result?.data ? cardTemplate(result.data) : `<p class="meta">${escapeHtml(result?.error || "Preview unavailable. Keep strict format.")}</p>`;
   });
 }
 
 publishContestBtn.addEventListener("click", () => {
   if (!requireAdmin()) return;
 
-  const parsed = parseContestText(parserInput.value);
-  if (!parsed) {
-    showAdminError("Invalid format. Required: Platform, Name, Timing, Duration, Link");
+  const result = parseContestText(parserInput.value);
+  if (!result?.data) {
+    showAdminError(result?.error || "Invalid format. Required: Platform, Name, Timing, Duration, Link");
     return;
   }
 
-  updateCollection(DB_KEYS.localContests, (contests) => [parsed, ...contests]);
+  updateCollection(DB_KEYS.localContests, (contests) => [result.data, ...contests]);
   parserInput.value = "";
   parserPreview.innerHTML = "";
   clearAdminError();
